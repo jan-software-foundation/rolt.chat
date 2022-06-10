@@ -43,6 +43,7 @@ const StatusBar = styled.div`
     font-size: 13px;
     //gap: 14px;
     gap: 8px;
+    white-space: nowrap;
 
     user-select: none;
 
@@ -230,3 +231,5 @@ export default function App() {
         </>
     );
 }
+
+export { StatusBar };

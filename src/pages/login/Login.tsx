@@ -8,10 +8,11 @@ import { Text } from "preact-i18n";
 
 import { useApplicationState } from "../../mobx/State";
 
-import LocaleSelector from "../../components/common/LocaleSelector";
 import wideSVG from "/assets/wide.svg";
 
+import LocaleSelector from "../../components/common/LocaleSelector";
 import { Titlebar } from "../../components/native/Titlebar";
+import { StatusBar } from "../RevoltApp";
 import { FormCreate } from "./forms/FormCreate";
 import { FormLogin } from "./forms/FormLogin";
 import { FormReset, FormSendReset } from "./forms/FormReset";
@@ -26,6 +27,19 @@ export default observer(() => {
             {window.isNative && !window.native.getConfig().frame && (
                 <Titlebar overlay />
             )}
+            <StatusBar>
+                <div className="title">
+                    This is an unofficial fork of the Revolt client.
+                </div>
+                <div className="actions">
+                    <a href="https://placeholder" target="_blank">
+                        <div className="button">Source Code</div>
+                    </a>
+                    <a href="https://revolt.chat" target="_blank">
+                        <div className="button">More Info</div>
+                    </a>
+                </div>
+            </StatusBar>
             <div className={styles.login}>
                 <Helmet>
                     <meta
