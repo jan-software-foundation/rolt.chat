@@ -21,6 +21,8 @@ import { useClient } from "../../context/revoltjs/RevoltClient";
 
 import ButtonItem from "../../components/navigation/items/ButtonItem";
 import { GenericSettings } from "./GenericSettings";
+import AutomodLogo from "./assets/AutomodLogo";
+import Automod from "./server/Automod";
 import { Bans } from "./server/Bans";
 import { Categories } from "./server/Categories";
 import { Invites } from "./server/Invites";
@@ -71,6 +73,11 @@ export default observer(() => {
                     hideTitle: true,
                 },
                 {
+                    id: "automod",
+                    icon: <AutomodLogo width={20} height={20} />,
+                    title: "AutoMod",
+                },
+                {
                     category: (
                         <Text id="app.settings.server_pages.management.title" />
                     ),
@@ -117,6 +124,9 @@ export default observer(() => {
                         <RequiresOnline>
                             <Roles server={server} />
                         </RequiresOnline>
+                    </Route>
+                    <Route path="/server/:server/settings/automod">
+                        <Automod server={server._id} />
                     </Route>
                     <Route>
                         <Overview server={server} />

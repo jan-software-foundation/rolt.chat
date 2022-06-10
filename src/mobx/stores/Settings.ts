@@ -13,7 +13,6 @@ import {
 import { Fonts, MonospaceFonts, Overrides } from "../../context/Theme";
 
 import { EmojiPack } from "../../components/common/Emoji";
-
 import { MIGRATIONS } from "../State";
 import Persistent from "../interfaces/Persistent";
 import Store from "../interfaces/Store";
@@ -40,6 +39,9 @@ export interface ISettings {
     "appearance:theme:css": string;
 
     "security:trustedOrigins": string[];
+
+    "automod:confirmedWarning": boolean;
+    "automod:apiToken": string | undefined;
 }
 
 /**
