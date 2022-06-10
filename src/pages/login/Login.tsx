@@ -32,7 +32,9 @@ export default observer(() => {
                     This is an unofficial fork of the Revolt client.
                 </div>
                 <div className="actions">
-                    <a href="https://placeholder" target="_blank">
+                    <a
+                        href="https://github.com/jan-software-foundation/rolt.chat"
+                        target="_blank">
                         <div className="button">Source Code</div>
                     </a>
                     <a href="https://revolt.chat" target="_blank">
