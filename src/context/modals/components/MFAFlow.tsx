@@ -3,7 +3,12 @@ import { Key, Keyboard } from "@styled-icons/boxicons-solid";
 import { API } from "revolt.js";
 
 import { Text } from "preact-i18n";
-import { useCallback, useEffect, useState } from "preact/hooks";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useState,
+} from "preact/hooks";
 
 import {
     Category,
@@ -13,18 +18,20 @@ import {
     Preloader,
 } from "@revoltchat/ui";
 
-import { noopTrue } from "../../../lib/js";
-
-import { useApplicationState } from "../../../mobx/State";
-
 import { ModalProps } from "../types";
 
+/**
+ * Mapping of MFA methods to icons
+ */
 const ICONS: Record<API.MFAMethod, React.FC<any>> = {
     Password: Keyboard,
     Totp: Key,
     Recovery: Archive,
 };
 
+/**
+ * Component for handling challenge entry
+ */
 function ResponseEntry({
     type,
     value,
@@ -34,12 +41,13 @@ function ResponseEntry({
     value?: API.MFAResponse;
     onChange: (v: API.MFAResponse) => void;
 }) {
-    if (type === "Password") {
-        return (
-            <>
-                <Category compact>
-                    <Text id={`login.${type.toLowerCase()}`} />
-                </Category>
+    return (
+        <>
+            <Category compact>
+                <Text id={`login.${type.toLowerCase()}`} />
+            </Category>
+
+            {type === "Password" && (
                 <InputBox
                     type="password"
                     value={(value as { password: string })?.password}
@@ -47,56 +55,69 @@ function ResponseEntry({
                         onChange({ password: e.currentTarget.value })
                     }
                 />
-            </>
-        );
-    } else {
-        return null;
-    }
+            )}
+
+            {type === "Totp" && (
+                <InputBox
+                    value={(value as { totp_code: string })?.totp_code}
+                    onChange={(e) =>
+                        onChange({ totp_code: e.currentTarget.value })
+                    }
+                />
+            )}
+
+            {type === "Recovery" && (
+                <InputBox
+                    value={(value as { recovery_code: string })?.recovery_code}
+                    onChange={(e) =>
+                        onChange({ recovery_code: e.currentTarget.value })
+                    }
+                />
+            )}
+        </>
+    );
 }
 
 /**
  * MFA ticket creation flow
  */
-export default function MFAFlow({
-    callback,
-    onClose,
-    ...props
-}: ModalProps<"mfa_flow">) {
-    const state = useApplicationState();
-
+export default function MFAFlow({ onClose, ...props }: ModalProps<"mfa_flow">) {
     const [methods, setMethods] = useState<API.MFAMethod[] | undefined>(
         props.state === "unknown" ? props.available_methods : undefined,
     );
 
+    // Current state of the modal
     const [selectedMethod, setSelected] = useState<API.MFAMethod>();
     const [response, setResponse] = useState<API.MFAResponse>();
 
+    // Fetch available methods if they have not been provided.
     useEffect(() => {
         if (!methods && props.state === "known") {
             props.client.api.get("/auth/mfa/methods").then(setMethods);
         }
     }, []);
 
+    // Always select first available method if only one available.
+    useLayoutEffect(() => {
+        if (methods && methods.length === 1) {
+            setSelected(methods[0]);
+        }
+    }, [methods]);
+
+    // Callback to generate a new ticket or send response back up the chain.
     const generateTicket = useCallback(async () => {
         if (response) {
-            let ticket;
-
             if (props.state === "known") {
-                ticket = await props.client.api.put(
+                const ticket = await props.client.api.put(
                     "/auth/mfa/ticket",
                     response,
                 );
+
+                props.callback(ticket);
             } else {
-                ticket = await state.config
-                    .createClient()
-                    .api.put("/auth/mfa/ticket", response, {
-                        headers: {
-                            "X-MFA-Ticket": props.ticket.token,
-                        },
-                    });
+                props.callback(response);
             }
 
-            callback(ticket);
             return true;
         }
 
@@ -105,36 +126,62 @@ export default function MFAFlow({
 
     return (
         <Modal
-            title="Confirm action."
+            title={<Text id="app.special.modals.confirm" />}
             description={
-                selectedMethod
-                    ? "Please confirm using selected method."
-                    : "Please select a method to authenticate your request."
+                <Text
+                    id={`app.special.modals.mfa.${
+                        selectedMethod ? "confirm" : "select_method"
+                    }`}
+                />
             }
             actions={
                 selectedMethod
                     ? [
                           {
                               palette: "primary",
-                              children: "Confirm",
+                              children: (
+                                  <Text id="app.special.modals.actions.confirm" />
+                              ),
                               onClick: generateTicket,
                               confirmation: true,
                           },
                           {
                               palette: "plain",
-                              children: "Back",
-                              onClick: () => setSelected(undefined),
+                              children: (
+                                  <Text
+                                      id={`app.special.modals.actions.${
+                                          methods!.length === 1
+                                              ? "cancel"
+                                              : "back"
+                                      }`}
+                                  />
+                              ),
+                              onClick: () => {
+                                  if (methods!.length === 1) {
+                                      props.callback();
+                                      return true;
+                                  }
+                                  setSelected(undefined);
+                              },
                           },
                       ]
                     : [
                           {
                               palette: "plain",
-                              children: "Cancel",
-                              onClick: noopTrue,
+                              children: (
+                                  <Text id="app.special.modals.actions.cancel" />
+                              ),
+                              onClick: () => {
+                                  props.callback();
+                                  return true;
+                              },
                           },
                       ]
             }
-            onClose={onClose}>
+            onClose={() => {
+                props.callback();
+                onClose();
+            }}>
             {methods ? (
                 selectedMethod ? (
                     <ResponseEntry
@@ -151,7 +198,7 @@ export default function MFAFlow({
                                 action="chevron"
                                 icon={<Icon size={24} />}
                                 onClick={() => setSelected(method)}>
-                                {method}
+                                <Text id={`login.${method.toLowerCase()}`} />
                             </CategoryButton>
                         );
                     })
