@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-literals */
 import { Message } from "revolt.js";
 import { ulid } from "ulid";
 
@@ -11,7 +12,7 @@ import { useClient } from "../../../context/revoltjs/RevoltClient";
 
 const AUTOMOD_USER_ID = "01FHGJ3NPP7XANQQH8C2BE44ZY";
 
-export default (props: { server: string }) => {
+export default function Automod(props: { server: string }) {
     const state = useApplicationState();
     const client = useClient();
     const [showWarning, setShowWarning] = useState(
@@ -26,10 +27,11 @@ export default (props: { server: string }) => {
         state.settings.set("automod:confirmedWarning", false);
 
         // todo: revoke the session token
-    }, []);
+    }, [state.settings]);
 
     const requestToken = useCallback(
         () =>
+            // eslint-disable-next-line no-async-promise-executor
             new Promise<string>(async (resolve, reject) => {
                 const automodUser =
                     client.users.get(AUTOMOD_USER_ID) ||
@@ -53,7 +55,7 @@ export default (props: { server: string }) => {
                         message.reply_ids?.[0] == msg._id
                     ) {
                         client.removeListener("message", onMessage);
-                        let token = message.nonce
+                        const token = message.nonce
                             ?.match(/TOKEN:.+/)?.[0]
                             ?.substring("TOKEN:".length);
 
@@ -63,7 +65,7 @@ export default (props: { server: string }) => {
                 };
                 client.on("message", onMessage);
             }),
-        [],
+        [client],
     );
 
     return showWarning ? (
@@ -111,4 +113,4 @@ export default (props: { server: string }) => {
             Disconnect
         </Button>
     );
-};
+}
