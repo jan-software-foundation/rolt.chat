@@ -8,7 +8,7 @@ import { Button, Tip } from "@revoltchat/ui";
 
 import { useApplicationState } from "../../../mobx/State";
 
-import { useClient } from "../../../context/revoltjs/RevoltClient";
+import { useClient } from "../../../controllers/client/ClientController";
 
 const AUTOMOD_USER_ID = "01FHGJ3NPP7XANQQH8C2BE44ZY";
 
