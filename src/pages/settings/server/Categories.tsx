@@ -14,9 +14,8 @@ import { useAutosave } from "../../../lib/debounce";
 import { Draggable, Droppable } from "../../../lib/dnd";
 import { noop } from "../../../lib/js";
 
-import { useIntermediate } from "../../../context/intermediate/Intermediate";
-
 import ChannelIcon from "../../../components/common/ChannelIcon";
+import { modalController } from "../../../controllers/modals/ModalController";
 
 const KanbanEntry = styled.div`
     padding: 2px 4px;
@@ -333,12 +332,9 @@ function ListElement({
     index: number;
     setTitle?: (title: string) => void;
     deleteSelf?: () => void;
-    addChannel: (
-        channel: Channel & { channel_type: "TextChannel" | "VoiceChannel" },
-    ) => void;
+    addChannel: (channel: Channel) => void;
     draggable?: boolean;
 }) {
-    const { openScreen } = useIntermediate();
     const [editing, setEditing] = useState<string>();
     const startEditing = () => setTitle && setEditing(category.title);
 
@@ -449,8 +445,7 @@ function ListElement({
                             </Droppable>
                             <KanbanListHeader
                                 onClick={() =>
-                                    openScreen({
-                                        id: "special_prompt",
+                                    modalController.push({
                                         type: "create_channel",
                                         target: server,
                                         cb: addChannel,

@@ -6,10 +6,9 @@ import styled, { css } from "styled-components/macro";
 
 import { useApplicationState } from "../../../mobx/State";
 
-import { useClient } from "../../../context/revoltjs/RevoltClient";
-
 import fallback from "../assets/user.png";
 
+import { useClient } from "../../../controllers/client/ClientController";
 import IconBase, { IconBaseProps } from "../IconBase";
 
 type VoiceStatus = "muted" | "deaf";

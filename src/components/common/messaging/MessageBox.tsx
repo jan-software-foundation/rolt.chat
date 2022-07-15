@@ -1,4 +1,4 @@
-import { Send, ShieldX } from "@styled-icons/boxicons-solid";
+import { HappyBeaming, Send, ShieldX } from "@styled-icons/boxicons-solid";
 import Axios, { CancelTokenSource } from "axios";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
@@ -6,9 +6,10 @@ import styled, { css } from "styled-components/macro";
 import { ulid } from "ulid";
 
 import { Text } from "preact-i18n";
-import { useCallback, useContext, useEffect, useState } from "preact/hooks";
+import { memo } from "preact/compat";
+import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 
-import { IconButton } from "@revoltchat/ui";
+import { IconButton, Picker } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
 import { debounce } from "../../../lib/debounce";
@@ -21,18 +22,19 @@ import {
     SMOOTH_SCROLL_ON_RECEIVE,
 } from "../../../lib/renderer/Singleton";
 
-import { useApplicationState } from "../../../mobx/State";
+import { state, useApplicationState } from "../../../mobx/State";
 import { Reply } from "../../../mobx/stores/MessageQueue";
 
-import { useIntermediate } from "../../../context/intermediate/Intermediate";
+import { emojiDictionary } from "../../../assets/emojis";
+import { useClient } from "../../../controllers/client/ClientController";
+import { takeError } from "../../../controllers/client/jsx/error";
 import {
     FileUploader,
     grabFiles,
     uploadFile,
-} from "../../../context/revoltjs/FileUploads";
-import { AppContext } from "../../../context/revoltjs/RevoltClient";
-import { takeError } from "../../../context/revoltjs/util";
-
+} from "../../../controllers/client/jsx/legacy/FileUploads";
+import { modalController } from "../../../controllers/modals/ModalController";
+import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import FilePreview from "./bars/FilePreview";
@@ -127,6 +129,10 @@ const FileAction = styled.div`
     }
 `;
 
+const FloatingLayer = styled.div`
+    position: relative;
+`;
+
 const ThisCodeWillBeReplacedAnywaysSoIMightAsWellJustDoItThisWay__Padding = styled.div`
     width: 16px;
 `;
@@ -136,6 +142,63 @@ const RE_SED = new RegExp("^s/([^])*/([^])*$");
 
 // Tests for code block delimiters (``` at start of line)
 const RE_CODE_DELIMITER = new RegExp("^```", "gm");
+
+const HackAlertThisFileWillBeReplaced = observer(
+    ({ channel, onClose }: Props & { onClose: () => void }) => {
+        const renderEmoji = useMemo(
+            () =>
+                memo(({ emoji }: { emoji: string }) => (
+                    <RenderEmoji match={emoji} {...({} as any)} />
+                )),
+            [],
+        );
+
+        const emojis: Record<string, any> = {
+            default: Object.keys(emojiDictionary).map((id) => ({ id })),
+        };
+
+        // ! FIXME: also expose typing from component
+        const categories: any[] = [];
+
+        for (const server of state.ordering.orderedServers) {
+            // ! FIXME: add a separate map on each server for emoji
+            const list = [...channel.client.emojis.values()]
+                .filter((emoji) => emoji.parent.id === server._id)
+                .map(({ _id, name }) => ({ id: _id, name }));
+
+            if (list.length > 0) {
+                emojis[server._id] = list;
+                categories.push({
+                    id: server._id,
+                    name: server.name,
+                    iconURL: server.generateIconURL({ max_side: 256 }),
+                });
+            }
+        }
+
+        categories.push({
+            id: "default",
+            name: "Default",
+            emoji: "smiley",
+        });
+
+        return (
+            <Picker
+                emojis={emojis}
+                categories={categories}
+                renderEmoji={renderEmoji}
+                onSelect={(emoji) => {
+                    const v = state.draft.get(channel._id);
+                    state.draft.set(
+                        channel._id,
+                        `${v ? `${v} ` : ""}:${emoji}:`,
+                    );
+                }}
+                onClose={onClose}
+            />
+        );
+    },
+);
 
 // ! FIXME: add to app config and load from app config
 export const CAN_UPLOAD_AT_ONCE = 5;
@@ -148,9 +211,11 @@ export default observer(({ channel }: Props) => {
     });
     const [typing, setTyping] = useState<boolean | number>(false);
     const [replies, setReplies] = useState<Reply[]>([]);
-    const { openScreen } = useIntermediate();
-    const client = useContext(AppContext);
+    const [picker, setPicker] = useState(false);
+    const client = useClient();
     const translate = useTranslation();
+
+    const closePicker = useCallback(() => setPicker(false), []);
 
     const renderer = getRenderer(channel);
 
@@ -300,6 +365,7 @@ export default observer(({ channel }: Props) => {
     async function sendFile(content: string) {
         if (uploadState.type !== "attached") return;
         const attachments: string[] = [];
+        setMessage;
 
         const cancel = Axios.CancelToken.source();
         const files = uploadState.files;
@@ -473,7 +539,10 @@ export default observer(({ channel }: Props) => {
                                 files: [...uploadState.files, ...files],
                             }),
                         () =>
-                            openScreen({ id: "error", error: "FileTooLarge" }),
+                            modalController.push({
+                                type: "error",
+                                error: "FileTooLarge",
+                            }),
                         true,
                     )
                 }
@@ -496,6 +565,14 @@ export default observer(({ channel }: Props) => {
                 replies={replies}
                 setReplies={setReplies}
             />
+            <FloatingLayer>
+                {picker && (
+                    <HackAlertThisFileWillBeReplaced
+                        channel={channel}
+                        onClose={closePicker}
+                    />
+                )}
+            </FloatingLayer>
             <Base>
                 {channel.havePermission("UploadFiles") ? (
                     <FileAction>
@@ -616,16 +693,13 @@ export default observer(({ channel }: Props) => {
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
-                {/*<Action>
-                    <IconButton>
-                        <Box size={24} />
-                    </IconButton>
-                </Action>
-                <Action>
-                    <IconButton>
-                        <HappyBeaming size={24} />
-                    </IconButton>
-                </Action>*/}
+                {state.experiments.isEnabled("picker") && (
+                    <Action>
+                        <IconButton onClick={() => setPicker(!picker)}>
+                            <HappyBeaming size={24} />
+                        </IconButton>
+                    </Action>
+                )}
                 <Action>
                     <IconButton
                         className={

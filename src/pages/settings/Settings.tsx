@@ -28,21 +28,21 @@ import styled from "styled-components/macro";
 import styles from "./Settings.module.scss";
 import { openContextMenu } from "preact-context-menu";
 import { Text } from "preact-i18n";
-import { useContext } from "preact/hooks";
 
 import { LineDivider } from "@revoltchat/ui";
 
 import { useApplicationState } from "../../mobx/State";
 
-import { useIntermediate } from "../../context/intermediate/Intermediate";
-import { modalController } from "../../context/modals";
-import RequiresOnline from "../../context/revoltjs/RequiresOnline";
-import { AppContext, LogOutContext } from "../../context/revoltjs/RevoltClient";
-
 import UserIcon from "../../components/common/user/UserIcon";
 import { Username } from "../../components/common/user/UserShort";
 import UserStatus from "../../components/common/user/UserStatus";
 import ButtonItem from "../../components/navigation/items/ButtonItem";
+import {
+    useClient,
+    clientController,
+} from "../../controllers/client/ClientController";
+import RequiresOnline from "../../controllers/client/jsx/RequiresOnline";
+import { modalController } from "../../controllers/modals/ModalController";
 import { GIT_BRANCH, GIT_REVISION, REPO_URL } from "../../revision";
 import { APP_VERSION } from "../../version";
 import { GenericSettings } from "./GenericSettings";
@@ -118,9 +118,7 @@ const AccountHeader = styled.div`
 
 export default observer(() => {
     const history = useHistory();
-    const client = useContext(AppContext);
-    const logout = useContext(LogOutContext);
-    const { openScreen } = useIntermediate();
+    const client = useClient();
     const experiments = useApplicationState().experiments;
 
     function switchPage(to?: string) {
@@ -288,7 +286,7 @@ export default observer(() => {
                     </a>
                     <LineDivider compact />
                     <ButtonItem
-                        onClick={() => logout()}
+                        onClick={clientController.logoutCurrent}
                         className={styles.logOut}
                         compact>
                         <LogOut size={20} />
@@ -346,9 +344,8 @@ export default observer(() => {
                         <a
                             className="status"
                             onClick={() =>
-                                openScreen({
-                                    id: "special_input",
-                                    type: "set_custom_status",
+                                modalController.push({
+                                    type: "custom_status",
                                 })
                             }>
                             Change your status...

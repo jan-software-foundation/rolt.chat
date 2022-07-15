@@ -1,13 +1,13 @@
 // @ts-expect-error No typings.
 import stringify from "json-stringify-deterministic";
 import localforage from "localforage";
-import { makeAutoObservable, reaction, runInAction } from "mobx";
-import { Client } from "revolt.js";
+import { action, makeAutoObservable, reaction, runInAction } from "mobx";
+import { Client, ClientboundNotification } from "revolt.js";
 
 import { reportError } from "../lib/ErrorBoundary";
+import { injectWindow } from "../lib/window";
 
-import { legacyMigrateForwards, LegacyState } from "./legacy/redux";
-
+import { clientController } from "../controllers/client/ClientController";
 import Persistent from "./interfaces/Persistent";
 import Syncable from "./interfaces/Syncable";
 import Auth from "./stores/Auth";
@@ -26,6 +26,7 @@ import Sync, { Data as DataSync, SyncKeys } from "./stores/Sync";
 
 export const MIGRATIONS = {
     REDUX: 1640305719826,
+    MULTI_SERVER_CONFIG: 1656350006152,
 };
 
 /**
@@ -38,7 +39,10 @@ export default class State {
     locale: LocaleOptions;
     experiments: Experiments;
     layout: Layout;
-    config: ServerConfig;
+    /**
+     * DEPRECATED
+     */
+    private config: ServerConfig;
     notifications: NotificationOptions;
     queue: MessageQueue;
     settings: Settings;
@@ -48,8 +52,6 @@ export default class State {
 
     private persistent: [string, Persistent<unknown>][] = [];
     private disabled: Set<string> = new Set();
-
-    client?: Client;
 
     /**
      * Construct new State.
@@ -62,21 +64,21 @@ export default class State {
         this.experiments = new Experiments();
         this.layout = new Layout();
         this.config = new ServerConfig();
-        this.notifications = new NotificationOptions();
+        this.notifications = new NotificationOptions(this);
         this.queue = new MessageQueue();
         this.settings = new Settings();
         this.sync = new Sync(this);
         this.plugins = new Plugins(this);
         this.ordering = new Ordering(this);
 
-        makeAutoObservable(this, {
-            client: false,
-        });
+        makeAutoObservable(this);
 
         this.register();
         this.setDisabled = this.setDisabled.bind(this);
+        this.onPacket = this.onPacket.bind(this);
 
-        this.client = undefined;
+        // Inject into window
+        injectWindow("state", this);
     }
 
     /**
@@ -134,14 +136,48 @@ export default class State {
     }
 
     /**
+     * Consume packets from the client.
+     * @param packet Inbound Packet
+     */
+    @action onPacket(packet: ClientboundNotification) {
+        if (packet.type === "UserSettingsUpdate") {
+            try {
+                this.sync.apply(packet.update);
+            } catch (err) {
+                reportError(err as any, "failed_sync_apply");
+            }
+        }
+    }
+
+    /**
      * Register reaction listeners for persistent data stores.
      * @returns Function to dispose of listeners
      */
     registerListeners(client?: Client) {
         // If a client is present currently, expose it and provide it to plugins.
         if (client) {
-            this.client = client;
-            this.plugins.onClient(client);
+            // Register message listener for clearing queue.
+            client.addListener("message", this.queue.onMessage);
+
+            // Register listener for incoming packets.
+            client.addListener("packet", this.onPacket);
+
+            // Register events for notifications.
+            client.addListener("message", this.notifications.onMessage);
+            client.addListener(
+                "user/relationship",
+                this.notifications.onRelationship,
+            );
+            document.addEventListener(
+                "visibilitychange",
+                this.notifications.onVisibilityChange,
+            );
+
+            // Sync settings from remote server.
+            state.sync
+                .pull(client)
+                .catch(console.error)
+                .finally(() => state.changelog.checkForUpdates());
         }
 
         // Register all the listeners required for saving and syncing state.
@@ -150,7 +186,6 @@ export default class State {
                 () => stringify(store.toJSON()),
                 async (value) => {
                     try {
-                        console.log(id, "updated!");
                         // Save updated store to local storage.
                         await localforage.setItem(id, JSON.parse(value));
 
@@ -228,8 +263,20 @@ export default class State {
         });
 
         return () => {
-            // Stop exposing the client.
-            this.client = undefined;
+            // Remove any listeners attached to client.
+            if (client) {
+                client.removeListener("message", this.queue.onMessage);
+                client.removeListener("packet", this.onPacket);
+                client.removeListener("message", this.notifications.onMessage);
+                client.removeListener(
+                    "user/relationship",
+                    this.notifications.onRelationship,
+                );
+                document.removeEventListener(
+                    "visibilitychange",
+                    this.notifications.onVisibilityChange,
+                );
+            }
 
             // Wipe all listeners.
             listeners.forEach((x) => x());
@@ -240,23 +287,6 @@ export default class State {
      * Load data stores from local storage.
      */
     async hydrate() {
-        // Migrate legacy Redux store.
-        try {
-            let legacy = await localforage.getItem("state");
-            await localforage.removeItem("state");
-            if (legacy) {
-                if (typeof legacy === "string") {
-                    legacy = JSON.parse(legacy);
-                }
-
-                legacyMigrateForwards(legacy as Partial<LegacyState>, this);
-                await this.save();
-                return;
-            }
-        } catch (err) {
-            reportError(err as any, "redux_migration");
-        }
-
         // Load MobX store.
         const sync = (await localforage.getItem("sync")) as DataSync;
         const { revision } = sync ?? { revision: {} };
@@ -273,6 +303,9 @@ export default class State {
 
         // Post-hydration, init plugins.
         this.plugins.init();
+
+        // Push authentication information forwards to client controller.
+        clientController.hydrate(this.auth);
     }
 
     /**
@@ -283,7 +316,7 @@ export default class State {
             this.draft = new Draft();
             this.experiments = new Experiments();
             this.layout = new Layout();
-            this.notifications = new NotificationOptions();
+            this.notifications = new NotificationOptions(this);
             this.queue = new MessageQueue();
             this.settings = new Settings();
             this.sync = new Sync(this);
@@ -297,18 +330,20 @@ export default class State {
     }
 }
 
-let state: State;
-
-export async function hydrateState() {
-    state = new State();
-    (window as any).state = state;
-    await state.hydrate();
-}
+export const state = new State();
 
 /**
  * Get the application state
  * @returns Application state
  */
 export function useApplicationState() {
+    return state;
+}
+
+/**
+ * Get the application state
+ * @returns Application state
+ */
+export function getApplicationState() {
     return state;
 }

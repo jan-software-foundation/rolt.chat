@@ -21,9 +21,8 @@ import { voiceState, VoiceStatus } from "../../../lib/vortex/VoiceState";
 import { useApplicationState } from "../../../mobx/State";
 import { SIDEBAR_MEMBERS } from "../../../mobx/stores/Layout";
 
-import { useIntermediate } from "../../../context/intermediate/Intermediate";
-
 import UpdateIndicator from "../../../components/common/UpdateIndicator";
+import { modalController } from "../../../controllers/modals/ModalController";
 import { ChannelHeaderProps } from "../ChannelHeader";
 
 const Container = styled.div`
@@ -73,7 +72,6 @@ const SearchBar = styled.div`
 
 export default function HeaderActions({ channel }: ChannelHeaderProps) {
     const layout = useApplicationState().layout;
-    const { openScreen } = useIntermediate();
     const history = useHistory();
 
     function slideOpen() {
@@ -114,8 +112,8 @@ export default function HeaderActions({ channel }: ChannelHeaderProps) {
                     <>
                         <IconButton
                             onClick={() =>
-                                openScreen({
-                                    id: "user_picker",
+                                modalController.push({
+                                    type: "user_picker",
                                     omit: channel.recipient_ids!,
                                     callback: async (users) => {
                                         for (const user of users) {

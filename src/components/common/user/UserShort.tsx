@@ -8,9 +8,8 @@ import { Text } from "preact-i18n";
 
 import { internalEmit } from "../../../lib/eventEmitter";
 
-import { useIntermediate } from "../../../context/intermediate/Intermediate";
-import { useClient } from "../../../context/revoltjs/RevoltClient";
-
+import { useClient } from "../../../controllers/client/ClientController";
+import { modalController } from "../../../controllers/modals/ModalController";
 import UserIcon from "./UserIcon";
 
 const BotBadge = styled.div`
@@ -27,7 +26,10 @@ const BotBadge = styled.div`
     border-radius: calc(var(--border-radius) / 2);
 `;
 
-type UsernameProps = JSX.HTMLAttributes<HTMLElement> & {
+type UsernameProps = Omit<
+    JSX.HTMLAttributes<HTMLElement>,
+    "children" | "as"
+> & {
     user?: User;
     prefixAt?: boolean;
     masquerade?: API.Masquerade;
@@ -35,6 +37,13 @@ type UsernameProps = JSX.HTMLAttributes<HTMLElement> & {
 
     innerRef?: Ref<any>;
 };
+
+const Name = styled.span<{ colour?: string | null }>`
+    background: ${(props) => props.colour ?? "var(--foreground)"};
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+`;
 
 export const Username = observer(
     ({
@@ -66,6 +75,11 @@ export const Username = observer(
                         }
                     }
 
+                    const role = member.hoistedRole;
+                    if (role) {
+                        color = role[1].colour;
+                    }
+
                     if (member.roles && member.roles.length > 0) {
                         const srv = client.servers.get(member._id.server);
                         if (srv?.roles) {
@@ -82,14 +96,19 @@ export const Username = observer(
             }
         }
 
+        const el = (
+            <Name {...otherProps} ref={innerRef} colour={color}>
+                {prefixAt ? "@" : undefined}
+                {masquerade?.name ?? username ?? (
+                    <Text id="app.main.channel.unknown_user" />
+                )}
+            </Name>
+        );
+
         if (user?.bot) {
             return (
                 <>
-                    <span {...otherProps} ref={innerRef} style={{ color }}>
-                        {masquerade?.name ?? username ?? (
-                            <Text id="app.main.channel.unknown_user" />
-                        )}
-                    </span>
+                    {el}
                     <BotBadge>
                         {masquerade ? (
                             <Text id="app.main.channel.bridge" />
@@ -101,14 +120,7 @@ export const Username = observer(
             );
         }
 
-        return (
-            <span {...otherProps} ref={innerRef} style={{ color }}>
-                {prefixAt ? "@" : undefined}
-                {masquerade?.name ?? username ?? (
-                    <Text id="app.main.channel.unknown_user" />
-                )}
-            </span>
-        );
+        return el;
     },
 );
 
@@ -125,9 +137,9 @@ export default function UserShort({
     masquerade?: API.Masquerade;
     showServerIdentity?: boolean;
 }) {
-    const { openScreen } = useIntermediate();
     const openProfile = () =>
-        user && openScreen({ id: "profile", user_id: user._id });
+        user &&
+        modalController.push({ type: "user_profile", user_id: user._id });
 
     const handleUserClick = (e: MouseEvent) => {
         if (e.shiftKey && user?._id) {

@@ -20,11 +20,10 @@ import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 
 import { useApplicationState } from "../../../mobx/State";
 
-import { useIntermediate } from "../../../context/intermediate/Intermediate";
-import { AppContext } from "../../../context/revoltjs/RevoltClient";
-
 import placeholderSVG from "../items/placeholder.svg";
 
+import { useClient } from "../../../controllers/client/ClientController";
+import { modalController } from "../../../controllers/modals/ModalController";
 import { GenericSidebarBase, GenericSidebarList } from "../SidebarBase";
 import ButtonItem, { ChannelButton } from "../items/ButtonItem";
 import ConnectionStatus from "../items/ConnectionStatus";
@@ -46,10 +45,9 @@ const Navbar = styled.div`
 
 export default observer(() => {
     const { pathname } = useLocation();
-    const client = useContext(AppContext);
+    const client = useClient();
     const state = useApplicationState();
     const { channel: channel_id } = useParams<{ channel: string }>();
-    const { openScreen } = useIntermediate();
 
     const channels = [...client.channels.values()].filter(
         (x) =>
@@ -131,8 +129,7 @@ export default observer(() => {
                     <Text id="app.main.categories.conversations" />
                     <IconButton
                         onClick={() =>
-                            openScreen({
-                                id: "special_input",
+                            modalController.push({
                                 type: "create_group",
                             })
                         }>

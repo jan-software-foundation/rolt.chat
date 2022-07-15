@@ -2,8 +2,16 @@ import { ChevronRight, Trash } from "@styled-icons/boxicons-regular";
 import { Cog, UserVoice } from "@styled-icons/boxicons-solid";
 import { isFirefox } from "react-device-detect";
 import { useHistory } from "react-router-dom";
-import { Channel, Message, Server, User, API } from "revolt.js";
-import { Permission, UserPermission } from "revolt.js";
+import {
+    Channel,
+    Message,
+    Server,
+    User,
+    API,
+    Permission,
+    UserPermission,
+    Member,
+} from "revolt.js";
 
 import {
     ContextMenuWithData,
@@ -11,7 +19,6 @@ import {
     openContextMenu,
 } from "preact-context-menu";
 import { Text } from "preact-i18n";
-import { useContext } from "preact/hooks";
 
 import { IconButton, LineDivider } from "@revoltchat/ui";
 
@@ -19,17 +26,13 @@ import { useApplicationState } from "../mobx/State";
 import { QueuedMessage } from "../mobx/stores/MessageQueue";
 import { NotificationState } from "../mobx/stores/NotificationOptions";
 
-import { Screen, useIntermediate } from "../context/intermediate/Intermediate";
-import {
-    AppContext,
-    ClientStatus,
-    StatusContext,
-} from "../context/revoltjs/RevoltClient";
-import { takeError } from "../context/revoltjs/util";
 import CMNotifications from "./contextmenu/CMNotifications";
 
 import Tooltip from "../components/common/Tooltip";
 import UserStatus from "../components/common/user/UserStatus";
+import { useSession } from "../controllers/client/ClientController";
+import { takeError } from "../controllers/client/jsx/error";
+import { modalController } from "../controllers/modals/ModalController";
 import { internalEmit } from "./eventEmitter";
 import { getRenderer } from "./renderer/Singleton";
 
@@ -67,8 +70,8 @@ type Action =
     | { action: "open_link"; link: string }
     | { action: "copy_link"; link: string }
     | { action: "remove_member"; channel: Channel; user: User }
-    | { action: "kick_member"; target: Server; user: User }
-    | { action: "ban_member"; target: Server; user: User }
+    | { action: "kick_member"; target: Member }
+    | { action: "ban_member"; target: Member }
     | { action: "view_profile"; user: User }
     | { action: "message_user"; user: User }
     | { action: "block_user"; user: User }
@@ -93,7 +96,7 @@ type Action =
     | { action: "close_dm"; target: Channel }
     | { action: "leave_server"; target: Server }
     | { action: "delete_server"; target: Server }
-    | { action: "edit_identity"; target: Server }
+    | { action: "edit_identity"; target: Member }
     | {
           action: "open_notification_options";
           channel?: Channel;
@@ -112,13 +115,12 @@ type Action =
 // ! FIXME: I dare someone to re-write this
 // Tip: This should just be split into separate context menus per logical area.
 export default function ContextMenus() {
-    const { openScreen, writeClipboard } = useIntermediate();
-    const client = useContext(AppContext);
+    const session = useSession()!;
+    const client = session.client!;
     const userId = client.user!._id;
-    const status = useContext(StatusContext);
-    const isOnline = status === ClientStatus.ONLINE;
     const state = useApplicationState();
     const history = useHistory();
+    const isOnline = session.state === "Online";
 
     function contextClick(data?: Action) {
         if (typeof data === "undefined") return;
@@ -126,7 +128,7 @@ export default function ContextMenus() {
         (async () => {
             switch (data.action) {
                 case "copy_id":
-                    writeClipboard(data.id);
+                    modalController.writeText(data.id);
                     break;
                 case "copy_message_link":
                     {
@@ -135,11 +137,13 @@ export default function ContextMenus() {
                         if (channel?.channel_type === "TextChannel")
                             pathname = `/server/${channel.server_id}${pathname}`;
 
-                        writeClipboard(window.origin + pathname);
+                        modalController.writeText(window.origin + pathname);
                     }
                     break;
                 case "copy_selection":
-                    writeClipboard(document.getSelection()?.toString() ?? "");
+                    modalController.writeText(
+                        document.getSelection()?.toString() ?? "",
+                    );
                     break;
                 case "mark_as_read":
                     {
@@ -223,7 +227,7 @@ export default function ContextMenus() {
                     break;
 
                 case "copy_text":
-                    writeClipboard(data.content);
+                    modalController.writeText(data.content);
                     break;
 
                 case "reply_message":
@@ -282,7 +286,7 @@ export default function ContextMenus() {
                 case "copy_file_link":
                     {
                         const { filename } = data.attachment;
-                        writeClipboard(
+                        modalController.writeText(
                             // ! FIXME: do from r.js
                             `${client.generateFileURL(
                                 data.attachment,
@@ -299,7 +303,7 @@ export default function ContextMenus() {
 
                 case "copy_link":
                     {
-                        writeClipboard(data.link);
+                        modalController.writeText(data.link);
                     }
                     break;
 
@@ -310,7 +314,10 @@ export default function ContextMenus() {
                     break;
 
                 case "view_profile":
-                    openScreen({ id: "profile", user_id: data.user._id });
+                    modalController.push({
+                        type: "user_profile",
+                        user_id: data.user._id,
+                    });
                     break;
 
                 case "message_user":
@@ -329,8 +336,7 @@ export default function ContextMenus() {
                     break;
 
                 case "block_user":
-                    openScreen({
-                        id: "special_prompt",
+                    modalController.push({
                         type: "block_user",
                         target: data.user,
                     });
@@ -339,8 +345,7 @@ export default function ContextMenus() {
                     await data.user.unblockUser();
                     break;
                 case "remove_friend":
-                    openScreen({
-                        id: "special_prompt",
+                    modalController.push({
                         type: "unfriend_user",
                         target: data.user,
                     });
@@ -361,51 +366,54 @@ export default function ContextMenus() {
                     break;
 
                 case "set_status":
-                    openScreen({
-                        id: "special_input",
-                        type: "set_custom_status",
+                    modalController.push({
+                        type: "custom_status",
                     });
                     break;
 
                 case "clear_status":
-                    {
-                        const { text: _text, ...status } =
-                            client.user?.status ?? {};
-                        await client.users.edit({ status });
-                    }
+                    await client.users.edit({ remove: ["StatusText"] });
+                    break;
+
+                case "delete_message":
+                    modalController.push({
+                        type: "delete_message",
+                        target: data.target,
+                    });
                     break;
 
                 case "leave_group":
                 case "close_dm":
-                case "leave_server":
                 case "delete_channel":
-                case "delete_server":
-                case "delete_message":
-                case "create_channel":
-                case "create_category":
                 case "create_invite":
-                    // Typescript flattens the case types into a single type and type structure and specifity is lost
-                    openScreen({
-                        id: "special_prompt",
+                    modalController.push({
                         type: data.action,
                         target: data.target,
-                    } as unknown as Screen);
+                    });
+                    break;
+
+                case "leave_server":
+                case "delete_server":
+                case "create_channel":
+                case "create_category":
+                    modalController.push({
+                        type: data.action,
+                        target: data.target,
+                    });
                     break;
 
                 case "edit_identity":
-                    openScreen({
-                        id: "server_identity",
-                        server: data.target,
+                    modalController.push({
+                        type: "server_identity",
+                        member: data.target,
                     });
                     break;
 
                 case "ban_member":
                 case "kick_member":
-                    openScreen({
-                        id: "special_prompt",
+                    modalController.push({
                         type: data.action,
-                        target: data.target,
-                        user: data.user,
+                        member: data.target,
                     });
                     break;
 
@@ -433,7 +441,10 @@ export default function ContextMenus() {
                     break;
             }
         })().catch((err) => {
-            openScreen({ id: "error", error: takeError(err) });
+            modalController.push({
+                type: "error",
+                error: takeError(err),
+            });
         });
     }
 
@@ -617,14 +628,26 @@ export default function ContextMenus() {
                             });
                         }
 
-                        if (
-                            user._id !== userId &&
-                            userPermissions & UserPermission.SendMessage
-                        ) {
-                            generateAction({
-                                action: "message_user",
-                                user,
-                            });
+                        if (user._id !== userId) {
+                            if (userPermissions & UserPermission.SendMessage) {
+                                generateAction({
+                                    action: "message_user",
+                                    user,
+                                });
+                            } else {
+                                elements.push(
+                                    <MenuItem disabled={true}>
+                                        <Tooltip
+                                            content="Must be friends with this user to message them."
+                                            placement="left"
+                                            hideOnClick={false}>
+                                            <Text
+                                                id={`app.context_menu.message_user`}
+                                            />
+                                        </Tooltip>
+                                    </MenuItem>,
+                                );
+                            }
                         }
 
                         for (let i = 0; i < actions.length; i++) {
@@ -658,31 +681,36 @@ export default function ContextMenus() {
                             userId !== uid &&
                             uid !== server.owner
                         ) {
-                            if (serverPermissions & Permission.KickMembers)
-                                generateAction(
-                                    {
-                                        action: "kick_member",
-                                        target: server,
-                                        user: user!,
-                                    },
-                                    undefined, // this is needed because generateAction uses positional, not named parameters
-                                    undefined,
-                                    null,
-                                    "var(--error)", // the only relevant part really
-                                );
+                            const member = client.members.getKey({
+                                server: server._id,
+                                user: user!._id,
+                            })!;
 
-                            if (serverPermissions & Permission.BanMembers)
-                                generateAction(
-                                    {
-                                        action: "ban_member",
-                                        target: server,
-                                        user: user!,
-                                    },
-                                    undefined,
-                                    undefined,
-                                    null,
-                                    "var(--error)",
-                                );
+                            if (member) {
+                                if (serverPermissions & Permission.KickMembers)
+                                    generateAction(
+                                        {
+                                            action: "kick_member",
+                                            target: member,
+                                        },
+                                        undefined, // this is needed because generateAction uses positional, not named parameters
+                                        undefined,
+                                        null,
+                                        "var(--error)", // the only relevant part really
+                                    );
+
+                                if (serverPermissions & Permission.BanMembers)
+                                    generateAction(
+                                        {
+                                            action: "ban_member",
+                                            target: member,
+                                        },
+                                        undefined,
+                                        undefined,
+                                        null,
+                                        "var(--error)",
+                                    );
+                            }
                         }
                     }
 
@@ -943,7 +971,10 @@ export default function ContextMenus() {
                                 serverPermissions & Permission.ChangeAvatar
                             )
                                 generateAction(
-                                    { action: "edit_identity", target: server },
+                                    {
+                                        action: "edit_identity",
+                                        target: server.member!,
+                                    },
                                     "edit_identity",
                                 );
 
@@ -1004,7 +1035,7 @@ export default function ContextMenus() {
                                     <div
                                         className="username"
                                         onClick={() =>
-                                            writeClipboard(
+                                            modalController.writeText(
                                                 client.user!.username,
                                             )
                                         }>

@@ -16,7 +16,7 @@ import { decodeTime } from "ulid";
 
 import styles from "./Panes.module.scss";
 import { Text } from "preact-i18n";
-import { useContext, useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import {
     Button,
@@ -27,13 +27,14 @@ import {
 } from "@revoltchat/ui";
 
 import { dayjs } from "../../../context/Locale";
-import { useIntermediate } from "../../../context/intermediate/Intermediate";
-import { AppContext } from "../../../context/revoltjs/RevoltClient";
+
+import { useClient } from "../../../controllers/client/ClientController";
+import { modalController } from "../../../controllers/modals/ModalController";
 
 dayjs.extend(relativeTime);
 
 export function Sessions() {
-    const client = useContext(AppContext);
+    const client = useClient();
     const deviceId =
         typeof client.session === "object" ? client.session._id : undefined;
 
@@ -42,8 +43,6 @@ export function Sessions() {
     );
     const [attemptingDelete, setDelete] = useState<string[]>([]);
     const history = useHistory();
-
-    const { openScreen } = useIntermediate();
 
     function switchPage(to: string) {
         history.replace(`/settings/${to}`);
@@ -217,32 +216,22 @@ export function Sessions() {
             })}
             <hr />
             <CategoryButton
-                onClick={async () => {
-                    openScreen({
-                        id: "sessions",
-                        confirm: async () => {
-                            // ! FIXME: add to rAuth
-                            const del: string[] = [];
-                            render.forEach((session) => {
-                                if (deviceId !== session._id) {
-                                    del.push(session._id);
-                                }
-                            });
-
-                            setDelete(del);
-
-                            for (const id of del) {
-                                await client.api.delete(
-                                    `/auth/session/${id as ""}`,
-                                );
-                            }
-
+                onClick={async () =>
+                    modalController.push({
+                        type: "sign_out_sessions",
+                        client,
+                        onDeleting: () =>
+                            setDelete(
+                                render
+                                    .filter((x) => x._id !== deviceId)
+                                    .map((x) => x._id),
+                            ),
+                        onDelete: () =>
                             setSessions(
                                 sessions.filter((x) => x._id === deviceId),
-                            );
-                        },
-                    });
-                }}
+                            ),
+                    })
+                }
                 icon={<LogOut size={24} color={"var(--error)"} />}
                 action={"chevron"}
                 description={
