@@ -23,6 +23,7 @@ export interface ISettings {
     "appearance:transparency": boolean;
     "appearance:show_send_button": boolean;
     "appearance:show_account_age": boolean;
+    "appearance:gigachad": boolean;
 
     "appearance:theme:base": "dark" | "light";
     "appearance:theme:overrides": Partial<Overrides>;

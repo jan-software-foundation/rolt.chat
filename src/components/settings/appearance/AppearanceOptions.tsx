@@ -40,6 +40,18 @@ export default function AppearanceOptions() {
                     <Text id="app.settings.pages.appearance.appearance_options.show_account_age_desc" />
                 }
             />
+            {/* Motherfucking gigachad */}
+            <ObservedInputElement
+                type="checkbox"
+                value={() => settings.get("appearance:gigachad") ?? false}
+                onChange={(v) => settings.set("appearance:gigachad", v)}
+                title={
+                    <img
+                        src="https://dl.insrt.uk/projects/revolt/emotes/gigachad.webp"
+                        height={36}
+                    />
+                }
+            />
             <hr />
             <h3>
                 <Text id="app.settings.pages.appearance.theme_options.title" />

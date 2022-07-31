@@ -330,15 +330,30 @@ ${(props) =>
     `}
 `;
 
+const GigachadTheme = createGlobalStyle`
+    :root {
+        --primary-background: rgba(var(--primary-background-rgb), 0.9);
+        --secondary-background: rgba(var(--secondary-background-rgb), 0.5);
+    }
+
+    [class^="Channel__ChannelMain-sc-"] [class^="SidebarBase-sc-"] {
+        background-color: transparent;
+    }
+
+    [class^="RevoltApp__AppContainer-sc-"] {
+    	background-image: url(https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fi0.kym-cdn.com%2Fentries%2Ficons%2Ffacebook%2F000%2F026%2F152%2Fgigachad.jpg&f=1&nofb=1);
+    	background-size: 100% 100%;
+    }
+`;
+
 export const generateVariables = (theme: Theme) => {
     return (Object.keys(theme) as Variables[]).map((key) => {
         const colour = rgba(theme[key]);
         if (colour) {
             const [r, g, b] = colour;
             return `--${key}: ${theme[key]}; --${key}-rgb: ${r}, ${g}, ${b};`;
-        } 
-            return `--${key}: ${theme[key]};`;
-        
+        }
+        return `--${key}: ${theme[key]};`;
     });
 };
 
@@ -390,6 +405,7 @@ export default observer(() => {
                 <meta name="theme-color" content={variables["background"]} />
             </Helmet>
             <GlobalTheme theme={variables} />
+            {settings.get("appearance:gigachad") && <GigachadTheme />}
             <style dangerouslySetInnerHTML={{ __html: theme.getCSS() ?? "" }} />
         </>
     );
