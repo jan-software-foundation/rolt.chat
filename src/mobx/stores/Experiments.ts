@@ -10,7 +10,12 @@ import Store from "../interfaces/Store";
 /**
  * Union type of available experiments.
  */
-export type Experiment = "dummy" | "offline_users" | "plugins" | "picker";
+export type Experiment =
+    | "dummy"
+    | "offline_users"
+    | "plugins"
+    | "picker"
+    | "platform-moderation";
 
 /**
  * Currently active experiments.
@@ -20,6 +25,7 @@ export const AVAILABLE_EXPERIMENTS: Experiment[] = [
     "offline_users",
     "plugins",
     "picker",
+    "platform-moderation",
 ];
 
 /**
@@ -46,6 +52,11 @@ export const EXPERIMENTS: {
         title: "Custom Emoji",
         description:
             "This will enable a work-in-progress emoji picker, custom emoji settings and reaction picker.",
+    },
+    "platform-moderation": {
+        title: "Platform Moderation",
+        description:
+            "Unless you know what this is, you should probably leave it disabled.",
     },
 };
 

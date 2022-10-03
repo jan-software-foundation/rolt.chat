@@ -21,6 +21,7 @@ import Changelog from "./components/Changelog";
 import ChannelInfo from "./components/ChannelInfo";
 import Clipboard from "./components/Clipboard";
 import ConfirmLeave from "./components/ConfirmLeave";
+import ConfirmPlatformModAction from "./components/ConfirmPlatformModAction";
 import Confirmation from "./components/Confirmation";
 import CreateBot from "./components/CreateBot";
 import CreateCategory from "./components/CreateCategory";
@@ -276,4 +277,5 @@ export const modalController = new ModalControllerExtended({
     sign_out_sessions: SignOutSessions,
     user_picker: UserPicker,
     user_profile: UserProfile,
+    platform_moderation_confirm: ConfirmPlatformModAction,
 });

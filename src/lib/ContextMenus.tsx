@@ -36,6 +36,9 @@ import { modalController } from "../controllers/modals/ModalController";
 import { internalEmit } from "./eventEmitter";
 import { getRenderer } from "./renderer/Singleton";
 
+const CHANNEL_TERM = "01FQWFG5ZJPNBSCWQ58V5TWM0X";
+const CHANNEL_BLACKLIST = "01G2P6WK74JSEP39RX1CK2G6RN";
+
 interface ContextMenuData {
     user?: string;
     server?: string;
@@ -77,6 +80,9 @@ type Action =
     | { action: "message_user"; user: User }
     | { action: "block_user"; user: User }
     | { action: "unblock_user"; user: User }
+    | { action: "term_user"; user: User }
+    | { action: "blacklist_user"; user: User }
+    | { action: "unblacklist_user"; user: User }
     | { action: "add_friend"; user: User }
     | { action: "remove_friend"; user: User }
     | { action: "cancel_friend"; user: User }
@@ -375,6 +381,36 @@ export default function ContextMenus() {
                     }
                     break;
 
+                case "term_user":
+                    {
+                        modalController.push({
+                            type: "platform_moderation_confirm",
+                            target: data.user,
+                            action: "term",
+                        });
+                    }
+                    break;
+
+                case "blacklist_user":
+                    {
+                        modalController.push({
+                            type: "platform_moderation_confirm",
+                            target: data.user,
+                            action: "blacklist",
+                        });
+                    }
+                    break;
+
+                case "unblacklist_user":
+                    {
+                        modalController.push({
+                            type: "platform_moderation_confirm",
+                            target: data.user,
+                            action: "unblacklist",
+                        });
+                    }
+                    break;
+
                 case "set_status":
                     modalController.push({
                         type: "custom_status",
@@ -667,6 +703,57 @@ export default function ContextMenus() {
                                     action,
                                     user,
                                 } as unknown as Action);
+                            }
+                        }
+
+                        if (
+                            state.experiments.isEnabled("platform-moderation")
+                        ) {
+                            if (client.channels.get(CHANNEL_TERM))
+                                elements.push(
+                                    <MenuItem
+                                        data={
+                                            {
+                                                action: "term_user",
+                                                user,
+                                            } as Action
+                                        }>
+                                        {/* eslint-disable-next-line react/jsx-no-literals */}
+                                        <span style={{ color: "var(--error)" }}>
+                                            Terminate
+                                        </span>
+                                    </MenuItem>,
+                                );
+
+                            if (client.channels.get(CHANNEL_BLACKLIST)) {
+                                elements.push(
+                                    <MenuItem
+                                        data={
+                                            {
+                                                action: "blacklist_user",
+                                                user,
+                                            } as Action
+                                        }>
+                                        {/* eslint-disable-next-line react/jsx-no-literals */}
+                                        <span style={{ color: "var(--error)" }}>
+                                            Blacklist
+                                        </span>
+                                    </MenuItem>,
+                                );
+                                elements.push(
+                                    <MenuItem
+                                        data={
+                                            {
+                                                action: "unblacklist_user",
+                                                user,
+                                            } as Action
+                                        }>
+                                        {/* eslint-disable-next-line react/jsx-no-literals */}
+                                        <span style={{ color: "var(--error)" }}>
+                                            Unblacklist
+                                        </span>
+                                    </MenuItem>,
+                                );
                             }
                         }
                     }

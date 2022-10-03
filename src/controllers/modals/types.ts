@@ -179,6 +179,11 @@ export type Modal = {
     | {
           type: "import_theme";
       }
+    | {
+          type: "platform_moderation_confirm";
+          target: User;
+          action: "term" | "blacklist" | "unblacklist";
+      }
 );
 
 export type ModalProps<T extends Modal["type"]> = Modal & { type: T } & {
