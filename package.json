@@ -4,7 +4,7 @@
         "dev": "node scripts/setup_assets.js --check && vite",
         "pull": "node scripts/setup_assets.js",
         "build:deps": "cd external && cd components && yarn && yarn build:esm && cd .. && cd revolt.js && yarn && yarn build",
-        "build": "yarn && rimraf build && node scripts/setup_assets.js --check && yarn build:deps && vite build",
+        "build": "yarn && rimraf build && node scripts/setup_assets.js --check && yarn build:deps && scripts/scrape_assets.sh && vite build",
         "build:highmem": "NODE_OPTIONS='--max-old-space-size=4096' yarn build",
         "preview": "vite preview",
         "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
