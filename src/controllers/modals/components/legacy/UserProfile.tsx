@@ -310,16 +310,18 @@ export const UserProfile = observer(
                                         </div>
                                     </>
                                 ) : undefined}
-                                {badges > 0 && (
-                                    <div className={styles.category}>
-                                        <Text id="app.special.popovers.user_profile.sub.badges" />
-                                    </div>
-                                )}
-                                {badges > 0 && (
-                                    <UserBadges
-                                        badges={badges}
-                                        uid={user._id}
-                                    />
+                                {(badges > 0 ||
+                                    user._id ==
+                                        "01G9S7EDXRBW3MHE5RQFF880ZN") && (
+                                    <>
+                                        <div className={styles.category}>
+                                            <Text id="app.special.popovers.user_profile.sub.badges" />
+                                        </div>
+                                        <UserBadges
+                                            badges={badges}
+                                            uid={user._id}
+                                        />
+                                    </>
                                 )}
                                 {profile?.content && (
                                     <>

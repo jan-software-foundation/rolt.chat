@@ -157,6 +157,19 @@ export default function UserBadges({ badges, uid }: Props) {
                 ) : (
                     <></>
                 )}
+                {[
+                    "01EXAF3KX65608AJ4NG27YG1HM",
+                    "01G9S7EDXRBW3MHE5RQFF880ZN",
+                ].includes(uid ?? "") ? (
+                    <Tooltip content="Meow!!">
+                        <img
+                            src="https://static.revolt.chat/emoji/mutant/1f43e.svg?rev=3"
+                            style={{ height: "30px", padding: "1px" }}
+                        />
+                    </Tooltip>
+                ) : (
+                    <></>
+                )}
             </Localizer>
         </BadgesBase>
     );
