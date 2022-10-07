@@ -387,6 +387,9 @@ export default observer(({ channel }: Props) => {
                     content,
                     nonce,
                     replies,
+                    ...(state.experiments.isEnabled("inhibit_reactions")
+                        ? { interactions: { restrict_reactions: true } }
+                        : {}),
                 });
             } catch (error) {
                 state.queue.fail(nonce, takeError(error));

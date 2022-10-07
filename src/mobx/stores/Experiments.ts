@@ -15,7 +15,8 @@ export type Experiment =
     | "offline_users"
     | "plugins"
     | "picker"
-    | "platform-moderation";
+    | "platform-moderation"
+    | "inhibit_reactions";
 
 /**
  * Currently active experiments.
@@ -26,6 +27,7 @@ export const AVAILABLE_EXPERIMENTS: Experiment[] = [
     "plugins",
     "picker",
     "platform-moderation",
+    "inhibit_reactions",
 ];
 
 /**
@@ -57,6 +59,11 @@ export const EXPERIMENTS: {
         title: "Platform Moderation",
         description:
             "Unless you know what this is, you should probably leave it disabled.",
+    },
+    inhibit_reactions: {
+        title: "Inhibit reactions to my messages",
+        description:
+            "This will prevent other users from reacting to your messages.",
     },
 };
 
