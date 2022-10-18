@@ -311,8 +311,7 @@ export const UserProfile = observer(
                                     </>
                                 ) : undefined}
                                 {(badges > 0 ||
-                                    user._id ==
-                                        "01G9S7EDXRBW3MHE5RQFF880ZN") && (
+                                    ["01G9S7EDXRBW3MHE5RQFF880ZN", "01FH48GXF663JKTH1R13XRF747"].includes(user_id) && (
                                     <>
                                         <div className={styles.category}>
                                             <Text id="app.special.popovers.user_profile.sub.badges" />
