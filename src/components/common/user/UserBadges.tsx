@@ -170,18 +170,6 @@ export default function UserBadges({ badges, uid }: Props) {
                     </Tooltip>
                 ) : (
                     <></>
-                )
-                {[
-                    "01FH48GXF663JKTH1R13XRF747",
-                ].includes(uid ?? "") ? (
-                    <Tooltip content="Trans">
-                        <img
-                            src="https://static.revolt.chat/emoji/mutant/1f3f3-fe0f-200d-26a7-fe0f.svg"
-                            style={{ height: "30px", padding: "1px" }}
-                        />
-                    </Tooltip>
-                ) : (
-                    <></>
                 )}
             </Localizer>
         </BadgesBase>
