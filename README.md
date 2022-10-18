@@ -40,7 +40,7 @@ It is also recommended to run `git submodule update` after you pull from upstrea
 Get revite up and running locally.
 
 ```
-git clone --recursive https://github.com/revoltchat/revite
+git clone --recursive https://github.com/jan-software-foundation/rolt.chat
 cd revite
 yarn
 yarn build:deps
@@ -48,6 +48,10 @@ yarn dev
 ```
 
 You can now access the client at http://local.revolt.chat:3000.
+
+## Desktop client
+
+You can also find the desktop version on the AUR: https://aur.archlinux.org/packages/rolt-desktop-git
 
 ## CLI Commands
 

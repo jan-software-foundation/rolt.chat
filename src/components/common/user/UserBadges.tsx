@@ -160,6 +160,7 @@ export default function UserBadges({ badges, uid }: Props) {
                 {[
                     "01EXAF3KX65608AJ4NG27YG1HM",
                     "01G9S7EDXRBW3MHE5RQFF880ZN",
+                    "01FH48GXF663JKTH1R13XRF747"
                 ].includes(uid ?? "") ? (
                     <Tooltip content="Meow!!">
                         <img
