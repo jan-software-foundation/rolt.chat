@@ -37,8 +37,8 @@ export const EXPERIMENTS: {
     [key in Experiment]: { title: string; description: string };
 } = {
     dummy: {
-        title: "Dummy Experiment",
-        description: "This is a dummy experiment.",
+        title: "Racism",
+        description: "Adds ethnic discrimination to Revolt.",
     },
     offline_users: {
         title: "Re-enable offline users in large servers (>10k members)",
