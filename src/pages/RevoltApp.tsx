@@ -127,7 +127,7 @@ export default function App() {
                         )}
                         {alert.dismissable !== false && (
                             <a onClick={() => setStatusBar(false)}>
-                                <div className="button">Dismiss</div>
+                                <div className="button">{"Dismiss"}</div>
                             </a>
                         )}
                     </div>

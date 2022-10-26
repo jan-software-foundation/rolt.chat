@@ -40,7 +40,6 @@ export default function AppearanceOptions() {
                     <Text id="app.settings.pages.appearance.appearance_options.show_account_age_desc" />
                 }
             />
-            {/* Motherfucking gigachad */}
             <ObservedInputElement
                 type="checkbox"
                 value={() => settings.get("appearance:gigachad") ?? false}
