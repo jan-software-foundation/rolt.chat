@@ -24,6 +24,8 @@ export interface ISettings {
     "appearance:show_send_button": boolean;
     "appearance:show_account_age": boolean;
     "appearance:gigachad": boolean;
+    "appearance:homescreen:snowflakes": string[] | undefined;
+    "appearance:homescreen:snowflake_count": number | undefined;
 
     "appearance:theme:base": "dark" | "light";
     "appearance:theme:overrides": Partial<Overrides>;

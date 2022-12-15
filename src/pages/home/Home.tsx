@@ -25,6 +25,7 @@ import { useApplicationState } from "../../mobx/State";
 
 import wideSVG from "/assets/wide.svg";
 
+import Markdown from "../../components/markdown/Markdown";
 import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import { modalController } from "../../controllers/modals/ModalController";
@@ -50,38 +51,19 @@ export default observer(() => {
     const toggleSeasonalTheme = () =>
         state.settings.set("appearance:seasonal", !seasonalTheme);
 
-    const isDecember = !isTouchscreenDevice && new Date().getMonth() === 11;
-    const isOctober = !isTouchscreenDevice && new Date().getMonth() === 9
     const snowflakes = useMemo(() => {
         const flakes = [];
-
-        if (isDecember) {
-            for (let i = 0; i < 15; i++) {
-                flakes.push("❄️");
-                flakes.push("❄");
+        for (
+            let i = 0;
+            i <
+            (state.settings.get("appearance:homescreen:snowflake_count") ?? 2);
+            i++
+        ) {
+            for (const text of state.settings.get(
+                "appearance:homescreen:snowflakes",
+            ) ?? []) {
+                if (text) flakes.push(<Markdown content={text} />);
             }
-
-            for (let i = 0; i < 2; i++) {
-                flakes.push("🎄");
-                flakes.push("☃️");
-                flakes.push("⛄");
-            }
-
-            return flakes;
-        }
-        if (isOctober) {
-            for (let i = 0; i < 15; i++) {
-                flakes.push("🎃");
-                flakes.push("💀");
-            }
-
-            for (let i = 0; i < 2; i++) {
-                flakes.push("👻");
-                flakes.push("⚰️");
-                flakes.push("🕷️");
-            }
-
-            return flakes;
         }
 
         return flakes;
@@ -198,11 +180,14 @@ export default observer(() => {
                                 </CategoryButton>
                             </Link>
                         </div>
-                        {isDecember && (
-                            <a href="#" onClick={toggleSeasonalTheme}>
-                                Turn {seasonalTheme ? "off" : "on"} homescreen
-                                effects
-                            </a>
+                        {state.settings
+                            .get("appearance:homescreen:snowflakes")
+                            ?.filter((x) => x).length ? (
+                            <Link to="/settings/appearance">
+                                Configure seasonal effects
+                            </Link>
+                        ) : (
+                            <></>
                         )}
                     </div>
                 </div>

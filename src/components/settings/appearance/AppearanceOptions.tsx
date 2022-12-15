@@ -4,6 +4,8 @@ import { Column, ObservedInputElement } from "@revoltchat/ui";
 
 import { useApplicationState } from "../../../mobx/State";
 
+import HomescreenEmojiSelector from "./HomescreenEmojiSelector";
+
 export default function AppearanceOptions() {
     const settings = useApplicationState().settings;
 
@@ -83,6 +85,7 @@ export default function AppearanceOptions() {
                     }
                 />
             </Column>
+            <HomescreenEmojiSelector />
         </>
     );
 }
