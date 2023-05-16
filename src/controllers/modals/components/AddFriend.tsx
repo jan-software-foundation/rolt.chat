@@ -16,7 +16,7 @@ export default function AddFriend({ ...props }: ModalProps<"add_friend">) {
     return (
         <ModalForm
             {...props}
-            title="Add Friend"
+            title="Add Date"
             schema={{
                 username: "text",
             }}
