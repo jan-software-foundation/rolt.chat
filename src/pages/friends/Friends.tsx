@@ -88,7 +88,7 @@ export default observer(() => {
                             <MessageAdd size={24} />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip content={"Add Friend"} placement="bottom">
+                    <Tooltip content={"Add Date"} placement="bottom">
                         <IconButton
                             onClick={() =>
                                 modalController.push({
